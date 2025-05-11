@@ -1,8 +1,6 @@
 #include "gameboard.h"
 #include <QRandomGenerator>
 #include <QMessageBox>
-#include <QFile>
-#include <QDataStream>
 #include <QFileDialog>
 
 GameBoard::GameBoard(QWidget *parent) : QWidget(parent)
@@ -305,86 +303,3 @@ bool GameBoard::isValidCell(int row, int col) const
     return row >= 0 && row < m_rows && col >= 0 && col < m_cols;
 }
 
-bool GameBoard::saveGame(const QString &filename)
-{
-    QFile file(filename);
-    if (!file.open(QIODevice::WriteOnly)) {
-        return false;
-    }
-    
-    QDataStream out(&file);
-    
-    // 保存游戏参数
-    out << m_rows << m_cols << m_mineCount << m_flaggedCount;
-    out << m_firstClick << m_gameOver << m_gameWon;
-    out << (m_elapsedTime.elapsed() + m_timeOffset);
-    
-    // 保存单元格状态
-    for (int row = 0; row < m_rows; ++row) {
-        for (int col = 0; col < m_cols; ++col) {
-            Cell *cell = m_cells[row][col];
-            out << cell->isMine() << cell->isRevealed() << cell->isFlagged() << cell->adjacentMines();
-        }
-    }
-    
-    file.close();
-    return true;
-}
-
-bool GameBoard::loadGame(const QString &filename)
-{
-    QFile file(filename);
-    if (!file.open(QIODevice::ReadOnly)) {
-        return false;
-    }
-    
-    QDataStream in(&file);
-    
-    // 读取游戏参数
-    int rows, cols, mineCount, flaggedCount;
-    bool firstClick, gameOver, gameWon;
-    qint64 elapsedTime;
-    
-    in >> rows >> cols >> mineCount >> flaggedCount;
-    in >> firstClick >> gameOver >> gameWon;
-    in >> elapsedTime;
-    
-    // 初始化游戏板
-    initializeBoard(rows, cols, mineCount);
-    
-    m_flaggedCount = flaggedCount;
-    m_firstClick = firstClick;
-    m_gameOver = gameOver;
-    m_gameWon = gameWon;
-    
-    // 读取单元格状态
-    for (int row = 0; row < rows; ++row) {
-        for (int col = 0; col < cols; ++col) {
-            bool isMine, isRevealed, isFlagged;
-            int adjacentMines;
-            
-            in >> isMine >> isRevealed >> isFlagged >> adjacentMines;
-            
-            Cell *cell = m_cells[row][col];
-            cell->setMine(isMine);
-            cell->setRevealed(isRevealed);
-            cell->setFlagged(isFlagged);
-            cell->setAdjacentMines(adjacentMines);
-            cell->updateAppearance();
-        }
-    }
-    
-    // 设置计时器
-    if (!m_firstClick && !m_gameOver) {
-        m_timeOffset = elapsedTime;
-        m_elapsedTime.start();
-        m_timer->start(1000);
-    }
-    
-    // 更新显示
-    emit updateMineCounter(m_mineCount - m_flaggedCount);
-    emit updateTimer(elapsedTime / 1000);
-    
-    file.close();
-    return true;
-}

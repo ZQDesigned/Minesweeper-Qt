@@ -1,5 +1,6 @@
 #include "mainwindow.h"
 #include <QMessageBox>
+#include <QDesktopServices>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -96,6 +97,14 @@ void MainWindow::setupUI()
     // 创建游戏板
     m_gameBoard = new GameBoard(this);
     m_mainLayout->addWidget(m_gameBoard);
+    
+    // 添加开源地址链接（右对齐）
+    QHBoxLayout* githubLayout = new QHBoxLayout();
+    QLabel *githubLabel = new QLabel("<a href=\"https://github.com/ZQDesigned/Minesweeper-Qt\">开源地址：Github</a>");
+    githubLabel->setOpenExternalLinks(true);
+    githubLayout->addStretch();
+    githubLayout->addWidget(githubLabel);
+    m_mainLayout->addLayout(githubLayout);
     
     // 连接信号和槽
     connect(m_gameBoard, &GameBoard::gameOver, this, &MainWindow::onGameOver);

@@ -1,5 +1,4 @@
 #include "cell.h"
-#include <QStyle>
 #include <QStyleOption>
 #include <QPainter>
 

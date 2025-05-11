@@ -25,11 +25,7 @@ public:
     bool isGameOver() const { return m_gameOver; }
     bool isGameWon() const { return m_gameWon; }
     int remainingMines() const { return m_mineCount - m_flaggedCount; }
-    int elapsedSeconds() const { return (m_elapsedTime.elapsed() + m_timeOffset) / 1000; }
-    
-    // 保存和加载游戏
-    bool saveGame(const QString &filename);
-    bool loadGame(const QString &filename);
+    int elapsedSeconds() const { return m_elapsedTime.elapsed() / 1000; }
     
 signals:
     void gameOver(bool won);

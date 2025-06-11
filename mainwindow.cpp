@@ -98,13 +98,22 @@ void MainWindow::setupUI()
     m_gameBoard = new GameBoard(this);
     m_mainLayout->addWidget(m_gameBoard);
     
+    // 添加底部信息布局
+    QHBoxLayout* bottomLayout = new QHBoxLayout();
+    m_mainLayout->addLayout(bottomLayout);
+    
+    // 添加Debug模式提示（左对齐）
+    QLabel* debugHintLabel = new QLabel("<i>提示: 连续按3次Delete键可以开启调试模式</i>");
+    debugHintLabel->setStyleSheet("color: #888888; font-size: 10px;");
+    bottomLayout->addWidget(debugHintLabel);
+    
+    // 添加弹簧
+    bottomLayout->addStretch();
+    
     // 添加开源地址链接（右对齐）
-    QHBoxLayout* githubLayout = new QHBoxLayout();
     QLabel *githubLabel = new QLabel("<a href=\"https://github.com/ZQDesigned/Minesweeper-Qt\">开源地址：Github</a>");
     githubLabel->setOpenExternalLinks(true);
-    githubLayout->addStretch();
-    githubLayout->addWidget(githubLabel);
-    m_mainLayout->addLayout(githubLayout);
+    bottomLayout->addWidget(githubLabel);
     
     // 连接信号和槽
     connect(m_gameBoard, &GameBoard::gameOver, this, &MainWindow::onGameOver);
@@ -180,6 +189,9 @@ void MainWindow::startNewGame()
     windowHeight = qMax(windowHeight, 350);
     
     resize(windowWidth, windowHeight);
+    
+    // 确保游戏板获得焦点，以便能接收键盘事件
+    m_gameBoard->setFocus();
 }
 
 void MainWindow::onGameOver(bool won)

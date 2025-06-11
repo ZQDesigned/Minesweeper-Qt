@@ -6,7 +6,10 @@
 #include <QVector>
 #include <QTimer>
 #include <QElapsedTimer>
+#include <QKeyEvent>
 #include "cell.h"
+
+class DebugWindow;
 
 class GameBoard : public QWidget
 {
@@ -14,6 +17,7 @@ class GameBoard : public QWidget
 
 public:
     explicit GameBoard(QWidget *parent = nullptr);
+    ~GameBoard();
     
     // 初始化游戏板
     void initializeBoard(int rows, int cols, int mineCount);
@@ -27,15 +31,25 @@ public:
     int remainingMines() const { return m_mineCount - m_flaggedCount; }
     int elapsedSeconds() const { return m_elapsedTime.elapsed() / 1000; }
     
+    // 获取地雷位置信息
+    int getRows() const { return m_rows; }
+    int getCols() const { return m_cols; }
+    bool isMineAt(int row, int col) const;
+    
 signals:
     void gameOver(bool won);
     void updateMineCounter(int count);
     void updateTimer(int seconds);
     
+protected:
+    // 添加键盘事件处理
+    void keyPressEvent(QKeyEvent *event) override;
+    
 private slots:
     void onCellClicked();
     void onCellRightClicked();
     void updateTimerDisplay();
+    void toggleDebugWindow();
     
 private:
     // 游戏参数
@@ -55,6 +69,10 @@ private:
     QTimer *m_timer = nullptr;
     QElapsedTimer m_elapsedTime;
     qint64 m_timeOffset = 0;
+    
+    // Debug相关
+    QVector<QDateTime> m_deleteKeyPresses;
+    DebugWindow *m_debugWindow = nullptr;
     
     // 游戏逻辑方法
     void placeMines(int firstRow, int firstCol);

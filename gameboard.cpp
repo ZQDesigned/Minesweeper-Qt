@@ -2,6 +2,8 @@
 #include <QRandomGenerator>
 #include <QMessageBox>
 #include <QFileDialog>
+#include <QDateTime>
+#include "debugwindow.h"
 
 GameBoard::GameBoard(QWidget *parent) : QWidget(parent)
 {
@@ -14,6 +16,21 @@ GameBoard::GameBoard(QWidget *parent) : QWidget(parent)
     m_timer = new QTimer(this);
     connect(m_timer, &QTimer::timeout, this, &GameBoard::updateTimerDisplay);
     m_timeOffset = 0;
+    
+    // 确保小部件可以接收键盘焦点
+    setFocusPolicy(Qt::StrongFocus);
+    
+    // 初始化Debug窗口为nullptr
+    m_debugWindow = nullptr;
+}
+
+GameBoard::~GameBoard()
+{
+    // 清理Debug窗口
+    if (m_debugWindow) {
+        m_debugWindow->close();
+        delete m_debugWindow;
+    }
 }
 
 void GameBoard::initializeBoard(int rows, int cols, int mineCount)
@@ -78,6 +95,11 @@ void GameBoard::resetGame()
     m_gameOver = false;
     m_gameWon = false;
     m_flaggedCount = 0;
+    
+    // 关闭Debug窗口（如果存在）
+    if (m_debugWindow && m_debugWindow->isVisible()) {
+        m_debugWindow->close();
+    }
     
     // 发出信号更新计数器
     emit updateMineCounter(m_mineCount);
@@ -180,6 +202,11 @@ void GameBoard::onCellClicked()
     
     // 揭示单元格
     revealCell(row, col);
+    
+    // 更新Debug窗口
+    if (m_debugWindow && m_debugWindow->isVisible()) {
+        m_debugWindow->updateDisplay();
+    }
 }
 
 void GameBoard::onCellRightClicked()
@@ -203,6 +230,11 @@ void GameBoard::onCellRightClicked()
     // 更新标记计数
     m_flaggedCount += flagged ? -1 : 1;
     emit updateMineCounter(m_mineCount - m_flaggedCount);
+    
+    // 更新Debug窗口
+    if (m_debugWindow && m_debugWindow->isVisible()) {
+        m_debugWindow->updateDisplay();
+    }
 }
 
 void GameBoard::revealCell(int row, int col)
@@ -237,6 +269,12 @@ void GameBoard::revealCell(int row, int col)
         
         m_gameOver = true;
         m_timer->stop();
+        
+        // 如果Debug窗口打开，关闭它
+        if (m_debugWindow && m_debugWindow->isVisible()) {
+            m_debugWindow->close();
+        }
+        
         emit gameOver(false);
     }
     // 如果是空白单元格（周围没有地雷），自动揭示周围的单元格
@@ -289,6 +327,11 @@ void GameBoard::checkGameWon()
         }
     }
     
+    // 如果Debug窗口打开，关闭它
+    if (m_debugWindow && m_debugWindow->isVisible()) {
+        m_debugWindow->close();
+    }
+    
     emit updateMineCounter(0);
     emit gameOver(true);
 }
@@ -301,5 +344,63 @@ void GameBoard::updateTimerDisplay()
 bool GameBoard::isValidCell(int row, int col) const
 {
     return row >= 0 && row < m_rows && col >= 0 && col < m_cols;
+}
+
+bool GameBoard::isMineAt(int row, int col) const
+{
+    if (isValidCell(row, col)) {
+        return m_cells[row][col]->isMine();
+    }
+    return false;
+}
+
+void GameBoard::keyPressEvent(QKeyEvent *event)
+{
+    // 监测Delete键的连续按下
+    if (event->key() == Qt::Key_Delete) {
+        // 记录当前时间
+        QDateTime currentTime = QDateTime::currentDateTime();
+        
+        // 清除3秒以前的按键记录
+        while (!m_deleteKeyPresses.isEmpty() && 
+               m_deleteKeyPresses.first().msecsTo(currentTime) > 3000) {
+            m_deleteKeyPresses.removeFirst();
+        }
+        
+        // 添加当前按键
+        m_deleteKeyPresses.append(currentTime);
+        
+        // 检查是否连续按下3次
+        if (m_deleteKeyPresses.size() >= 3 && 
+            m_deleteKeyPresses.first().msecsTo(currentTime) <= 3000) {
+            toggleDebugWindow();
+            m_deleteKeyPresses.clear(); // 清除记录，避免重复触发
+        }
+    }
+    
+    // 调用父类的事件处理
+    QWidget::keyPressEvent(event);
+}
+
+void GameBoard::toggleDebugWindow()
+{
+    // 如果游戏尚未开始（还没有放置地雷），不显示调试窗口
+    if (m_firstClick) {
+        return;
+    }
+    
+    if (m_debugWindow && m_debugWindow->isVisible()) {
+        m_debugWindow->hide();
+    } else {
+        if (!m_debugWindow) {
+            m_debugWindow = new DebugWindow(this);
+        } else {
+            // 确保窗口显示最新数据
+            m_debugWindow->updateDisplay();
+        }
+        m_debugWindow->show();
+        m_debugWindow->raise();
+        m_debugWindow->activateWindow();
+    }
 }
 

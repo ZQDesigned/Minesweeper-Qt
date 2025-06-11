@@ -20,6 +20,8 @@ set(PROJECT_SOURCES
         gameboard.h
         cell.cpp
         cell.h
+        debugwindow.cpp
+        debugwindow.h
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
